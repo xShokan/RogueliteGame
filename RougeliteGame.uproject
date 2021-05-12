@@ -1,0 +1,19 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "{7271FC5F-43EB-7AAA-83F0-37994EB28F5E}",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "RougeliteGame",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"CoreUObject",
+				"UMG",
+				"AIModule"
+			]
+		}
+	]
+}
