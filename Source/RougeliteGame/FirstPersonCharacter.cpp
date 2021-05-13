@@ -4,6 +4,7 @@
 
 #include "ConstructorHelpers.h"
 #include "GeometryCollectionSimulationCoreTypes.h"
+#include "RougeliteGameGameModeBase.h"
 #include "Weapon/GrenadeGunActor.h"
 #include "Weapon/RifleGunActor.h"
 #include "Animation/AnimBlueprint.h"
@@ -14,6 +15,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AFirstPersonCharacter::AFirstPersonCharacter()
@@ -21,7 +23,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	// Create a CameraComponent
+	// Create a CameraComponent	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCameraComponent->SetupAttachment(RootComponent);
 	FirstPersonCameraComponent->SetRelativeLocation(FVector(-39.56f, 1.75f, 64.0f)); // Position the camera
@@ -62,6 +64,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	{
 		ReloadAnimation = ReloadMontage.Object;
 	}*/
+
 	
 	MaxHealth = 100.0f;
 	CurrentHealth = MaxHealth - 10.0f;
@@ -104,6 +107,13 @@ void AFirstPersonCharacter::BeginPlay()
 		WeaponArray[1]->SetActorHiddenInGame(true);
 	}
 
+	RougeliteGameGameMode = Cast<ARougeliteGameGameModeBase>(UGameplayStatics::GetGameMode(this));
+	if (RougeliteGameGameMode)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GameMode Succeed"));
+		RougeliteGameGameMode->OnTakeDamage.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+	}
+
 }
 
 void AFirstPersonCharacter::MoveForward(float Val)
@@ -135,6 +145,7 @@ void AFirstPersonCharacter::Fire()
 		}
 	}*/
 	Weapon->Fire();
+	RougeliteGameGameMode->OnTakeDamage.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
 }
 
 void AFirstPersonCharacter::Reload()
@@ -149,6 +160,7 @@ void AFirstPersonCharacter::Reload()
 		}
 	}*/
 	Weapon->Reload();
+	RougeliteGameGameMode->OnTakeDamage.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
 }
 
 void AFirstPersonCharacter::SwitchWeapon()
@@ -228,6 +240,7 @@ float AFirstPersonCharacter::TakeDamage(float DamageAmount, FDamageEvent const& 
 	AController* EventInstigator, AActor* DamageCauser)
 {
 	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.0f, MaxHealth);
+	RougeliteGameGameMode->OnTakeDamage.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
 	return 0.0f;
 }
 

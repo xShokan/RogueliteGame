@@ -8,7 +8,6 @@
 #include "GameFramework/Character.h"
 #include "FirstPersonCharacter.generated.h"
 
-
 UCLASS()
 class ROUGELITEGAME_API AFirstPersonCharacter : public ACharacter
 {
@@ -53,6 +52,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	bool bAim;
 
+	UPROPERTY(VisibleDefaultsOnly)
+	class ARougeliteGameGameModeBase* RougeliteGameGameMode;
 
 protected:
 	// Called when the game starts or when spawned

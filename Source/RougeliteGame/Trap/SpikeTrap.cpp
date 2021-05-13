@@ -8,6 +8,7 @@
 #include "FirstPersonCharacter.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -29,10 +30,7 @@ ASpikeTrap::ASpikeTrap()
 	Damage = 10.0f;
 	// UE_LOG(LogTemp, Warning, TEXT("ASpikeTrap::ASpikeTrap()"));
 	// UE_LOG(LogTemp, Warning, TEXT("%f"), Damage);
-}
-
-void ASpikeTrap::BeginPlay()
-{
+	// UE_LOG(LogTemp, Warning, TEXT("%s"), *GetOuter()->GetClass()->GetName());
 }
 
 void ASpikeTrap::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,

@@ -6,8 +6,6 @@
 #include "GameFramework/Character.h"
 #include "AICharacter.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FTakeDamage, float, CurrentHealth, float, MaxHealth);
-
 UCLASS()
 class ROUGELITEGAME_API AAICharacter : public ACharacter
 {
@@ -45,9 +43,6 @@ public:
 
 	UPROPERTY(VisibleDefaultsOnly)
 	class AWeaponBaseActor* Weapon;
-
-	UPROPERTY(BlueprintAssignable)
-	FTakeDamage OnTakeDamage;
 
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	

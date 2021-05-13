@@ -4,8 +4,6 @@
 
 #include "CoreMinimal.h"
 
-
-#include "FirstPersonCharacter.h"
 #include "ProgressBar.h"
 #include "Blueprint/UserWidget.h"
 
@@ -38,11 +36,15 @@ public:
 	UPROPERTY(Meta=(BindWidget))
 	class UTextBlock* WeaponNameLabel;
 
-	TWeakObjectPtr<AFirstPersonCharacter> OwnerCharacter;
+	UPROPERTY(VisibleDefaultsOnly)
+	class ARougeliteGameGameModeBase* RougeliteGameGameMode;
     
 protected:
 
 	virtual void NativeConstruct() override;
 	
-    virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+    // virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
+	UFUNCTION()
+	void ChangeUI(float CurrentHealth, float MaxHealth, int32 AmmoNumInClip, int32 AmmoTotalNum, FString WeaponName);
 };

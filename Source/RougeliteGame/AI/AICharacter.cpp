@@ -112,7 +112,6 @@ float AAICharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 	AActor* DamageCauser)
 {
 	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.0f, MaxHealth);
-	OnTakeDamage.Broadcast(CurrentHealth, MaxHealth);
 	HealthBarComponent->SetVisibility(true);
 	// GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Orange, FString::SanitizeFloat(CurrentHealth));
 	if (CurrentHealth < 0.1f)
