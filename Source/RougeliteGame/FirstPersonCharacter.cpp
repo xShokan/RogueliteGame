@@ -16,12 +16,13 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystemComponent.h"
 
 // Sets default values
 AFirstPersonCharacter::AFirstPersonCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	// Create a CameraComponent	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
@@ -65,6 +66,16 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 		ReloadAnimation = ReloadMontage.Object;
 	}*/
 
+	ParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleComponent"));
+	ParticleComponent->SetAutoActivate(false);
+	ParticleComponent->SetupAttachment(GetMesh());
+	static ConstructorHelpers::FObjectFinder<UParticleSystem>Burning(TEXT("ParticleSystem'/Game/M5VFXVOL2/Particles/Fire/Fire_12.Fire_12'"));
+	if (Burning.Succeeded())
+	{
+		ParticleComponent->SetTemplate(Burning.Object);
+	}
+	// ParticleComponent->ActivateSystem(false);
+
 	
 	MaxHealth = 100.0f;
 	CurrentHealth = MaxHealth - 10.0f;
@@ -76,6 +87,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	Tags.Add(FName("Player"));
 
 	bAim = false;
+	bBurning = false;
 }
 
 // Called when the game starts or when spawned

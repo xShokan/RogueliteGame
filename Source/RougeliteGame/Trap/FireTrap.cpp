@@ -17,7 +17,7 @@
 
 AFireTrap::AFireTrap()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	
 	static ConstructorHelpers::FObjectFinder<UStaticMesh>StaticMesh(TEXT("StaticMesh'/Game/LevelThings/SM_FireTrap.SM_FireTrap'"));
 	if (StaticMesh.Succeeded())
@@ -39,15 +39,17 @@ AFireTrap::AFireTrap()
 
 	ParticleSystemComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleSystemComponent"));
 	ParticleSystemComponent->SetupAttachment(RootComponent);
-	ParticleSystemComponent->SetTemplate(Particle.Object);
+	ParticleSystemComponent->SetTemplate(FireParticle);
 	ParticleSystemComponent->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 	ParticleSystemComponent->SetRelativeScale3D(FVector(4.5f, 4.5f, 3.5f));
 	ParticleSystemComponent->OnSystemFinished.AddDynamic(this, &AFireTrap::ParticleFinished);
-
+	
+	
 	bParticleFinished = false;
 	Damage = 1.0f;
 	StartTime = 0.1f;
 	CycleTime = 6.0f;
+	DamageTimes = 5;
 	// UE_LOG(LogTemp, Warning, TEXT("AFireTrap::AFireTrap()"));
 }
 
@@ -57,7 +59,6 @@ void AFireTrap::BeginPlay()
 	FTimerHandle handle;
 
 	GetWorld()->GetTimerManager().SetTimer(handle, this, &AFireTrap::PlayFire, StartTime, false);
-	
 }
 
 void AFireTrap::Tick(float DeltaSeconds)
@@ -79,13 +80,19 @@ void AFireTrap::OnOverlap(UPrimitiveComponent* OverlappedComponent,
 {
 	Super::OnOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 	
-	GetWorld()->GetTimerManager().SetTimer(DamageTimerHandle, [this]() {
+	/*GetWorld()->GetTimerManager().SetTimer(DamageTimerHandle, [this]() {
 		if (DamageCharacter && !bParticleFinished && bOverlapping)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Particle OnOverlap"));
             UGameplayStatics::ApplyDamage(DamageCharacter, Damage, nullptr, nullptr, nullptr);
         }
-    }, 0.5f, true);
+    }, 0.5f, true);*/
+	if (DamageCharacter && !bParticleFinished && !DamageCharacter->bBurning)
+	{
+		DamageCharacter->bBurning = true;
+		DamageCharacter->ParticleComponent->Activate();
+		GetWorld()->GetTimerManager().SetTimer(BurningTimerHandle, this, &AFireTrap::BurningDamage, 0.5f, true);
+	}
+	
 }
 
 void AFireTrap::EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
@@ -101,5 +108,30 @@ void AFireTrap::PlayFire()
         // UE_LOG(LogTemp, Warning, TEXT("######################"));
         ParticleSystemComponent->Activate(true);
         bParticleFinished = false;
+        if (DamageCharacter && !bParticleFinished && !DamageCharacter->bBurning && bOverlapping)
+        {
+        	DamageCharacter->bBurning = true;
+			DamageCharacter->ParticleComponent->Activate();
+        	GetWorld()->GetTimerManager().SetTimer(BurningTimerHandle, this, &AFireTrap::BurningDamage, 0.5f, true);
+        }
     }, CycleTime, true);
+}
+
+void AFireTrap::BurningDamage()
+{
+	if (DamageTimes > 0 && DamageCharacter)
+	{
+		UGameplayStatics::ApplyDamage(DamageCharacter, Damage, nullptr, nullptr, nullptr);
+		if (!bOverlapping && !bParticleFinished)
+		{
+			DamageTimes--;
+		}
+	}
+	else
+	{
+		DamageCharacter->bBurning = false;
+		DamageCharacter->ParticleComponent->Deactivate();
+		GetWorld()->GetTimerManager().ClearTimer(BurningTimerHandle);
+		DamageTimes = 5;
+	}
 }

@@ -18,4 +18,5 @@ class ROUGELITEGAME_API UDamageWidget : public UUserWidget
 public:
 	UPROPERTY(Meta=(BindWidget))
 	class UTextBlock* DamageFigureLabel;
+	
 };

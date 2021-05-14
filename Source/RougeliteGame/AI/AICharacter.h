@@ -44,6 +44,9 @@ public:
 	UPROPERTY(VisibleDefaultsOnly)
 	class AWeaponBaseActor* Weapon;
 
+	UPROPERTY(VisibleDefaultsOnly)
+	float HeadLowBoundZ;
+
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	
 	UFUNCTION(BlueprintCallable)

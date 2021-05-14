@@ -92,6 +92,7 @@ void AAICharacter::BeginPlay()
 	}
 
 	HealthBarComponent->SetVisibility(false);
+	HeadLowBoundZ = GetMesh()->GetSocketLocation(FName("HeadDamageSocket")).Z;
 }
 
 // Called every frame

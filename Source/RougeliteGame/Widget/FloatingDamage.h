@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
 #include "GameFramework/Actor.h"
 #include "FloatingDamage.generated.h"
 
@@ -25,8 +26,5 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	class UWidgetComponent* DamageWidgetComponent;
-
-	UPROPERTY(EditAnywhere)
-	class UWidgetComponent* DamageWidget;
 
 };

@@ -20,7 +20,7 @@
 AAmmoBaseActor::AAmmoBaseActor()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	AmmoMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Ammo"));
 }
@@ -39,18 +39,28 @@ void AAmmoBaseActor::Tick(float DeltaTime)
 	
 }
 
-void AAmmoBaseActor::SpawnFloatingDamage()
+void AAmmoBaseActor::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+	FVector NormalImpulse, const FHitResult& Hit)
+{
+
+}
+
+void AAmmoBaseActor::SpawnFloatingDamage(float ThisDamage)
 {
 	AFloatingDamage* FloatingDamage = GetWorld()->SpawnActor<AFloatingDamage>(GetActorLocation(), GetActorRotation());
-	FloatingDamage->SetLifeSpan(0.5f);
 	UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>(FloatingDamage->GetComponentByClass(UWidgetComponent::StaticClass()));
 	if (WidgetComponent)
 	{
 		UDamageWidget* DamageWidget = Cast<UDamageWidget>(WidgetComponent->GetUserWidgetObject());
 		if (DamageWidget)
 		{
-			DamageWidget->DamageFigureLabel->SetText(FText::AsNumber(Damage));
+			DamageWidget->DamageFigureLabel->SetText(FText::AsNumber(ThisDamage));
+			if (ThisDamage > Damage)
+			{
+				DamageWidget->DamageFigureLabel->SetColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 0.0f)));
+			}
 		}
 	}
+	FloatingDamage->SetLifeSpan(1.0f);
 }
 

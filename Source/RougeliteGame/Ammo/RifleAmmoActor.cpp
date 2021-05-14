@@ -27,7 +27,7 @@
 ARifleAmmoActor::ARifleAmmoActor()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	// Use a sphere as a simple collision representation
 	CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
@@ -75,6 +75,8 @@ ARifleAmmoActor::ARifleAmmoActor()
 	}
 
 	Damage = 5.0f;
+
+	DamageTime = 2.0f;
 }
 
 void ARifleAmmoActor::BeginPlay()
@@ -91,14 +93,24 @@ void ARifleAmmoActor::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), AmmoExplosionParticle, GetActorLocation(), GetActorRotation());
 		UGameplayStatics::PlaySoundAtLocation(this, AmmoExplosionSound, GetActorLocation());
 		AAICharacter* DamageAICharacter = Cast<AAICharacter>(OtherActor);
+		// Hit AI
 		if (DamageAICharacter && DamageAICharacter->CurrentHealth > 0.1f && Cast<AFirstPersonCharacter>(Instigator->Instigator))
 		{
-			UGameplayStatics::ApplyDamage(DamageAICharacter, Damage, nullptr, GetInstigator(), nullptr);
-			SpawnFloatingDamage();
+			if (Hit.Location.Z > DamageAICharacter->HeadLowBoundZ)
+			{
+				UGameplayStatics::ApplyDamage(DamageAICharacter, DamageTime * Damage, nullptr, GetInstigator(), nullptr);
+				SpawnFloatingDamage(DamageTime * Damage);
+			}
+			else
+			{
+				UGameplayStatics::ApplyDamage(DamageAICharacter, Damage, nullptr, GetInstigator(), nullptr);
+				SpawnFloatingDamage(Damage);
+			}
 			Destroy();
 		}
 
 		AFirstPersonCharacter* DamageMyFirstPersonCharacter = Cast<AFirstPersonCharacter>(OtherActor);
+		// Hit Person
 		if (DamageMyFirstPersonCharacter && DamageMyFirstPersonCharacter->CurrentHealth > 0.1f)
 		{
 			UGameplayStatics::ApplyDamage(DamageMyFirstPersonCharacter, Damage, nullptr, GetInstigator(), nullptr);

@@ -33,16 +33,19 @@ public:
 	UPROPERTY(VisibleDefaultsOnly)
 	class USoundBase* AmmoExplosionSound;
 
-	UPROPERTY(VisibleDefaultsOnly)
+	UPROPERTY(EditAnywhere)
 	float Damage;
+
+	UPROPERTY(EditAnywhere)
+	float DamageTime;
 
 	FTimerHandle AmmoTimerHandle;
 
 	UFUNCTION()
-    virtual void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit){};
+    virtual void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 	UFUNCTION()
     virtual void ExplodeBySelf(){};
 
-	void SpawnFloatingDamage();
+	void SpawnFloatingDamage(float ThisDamage);
 };

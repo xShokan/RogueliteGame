@@ -16,12 +16,13 @@
 #include "ParticleDefinitions.h"
 #include "TextBlock.h"
 #include "WidgetComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Sound/SoundBase.h"
 
 AGrenadeAmmoActor::AGrenadeAmmoActor()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	// Use a sphere as a simple collision representation
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
@@ -69,6 +70,7 @@ AGrenadeAmmoActor::AGrenadeAmmoActor()
 
 	Damage = 20.0f;
 
+	DamageTime = 2.5f;
 
 }
 
@@ -91,10 +93,18 @@ void AGrenadeAmmoActor::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, 
 		AAICharacter* DamageCharacter = Cast<AAICharacter>(OtherActor);
 		if (DamageCharacter && DamageCharacter->CurrentHealth > 0.1f)
 		{
-			UGameplayStatics::ApplyDamage(DamageCharacter, Damage, nullptr, GetInstigator(), nullptr);
+			if (Hit.Location.Z > DamageCharacter->HeadLowBoundZ)
+			{
+				UGameplayStatics::ApplyDamage(DamageCharacter, DamageTime * Damage, nullptr, GetInstigator(), nullptr);
+				SpawnFloatingDamage(DamageTime * Damage);
+			}
+			else
+			{
+				UGameplayStatics::ApplyDamage(DamageCharacter, Damage, nullptr, GetInstigator(), nullptr);
+				SpawnFloatingDamage(Damage);
+			}
 			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), AmmoExplosionParticle, GetActorLocation(), GetActorRotation());
 			UGameplayStatics::PlaySoundAtLocation(this, AmmoExplosionSound, GetActorLocation());
-			SpawnFloatingDamage();
 			Destroy();
 		}
 	}

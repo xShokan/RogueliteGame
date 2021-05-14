@@ -55,6 +55,12 @@ public:
 	UPROPERTY(VisibleDefaultsOnly)
 	class ARougeliteGameGameModeBase* RougeliteGameGameMode;
 
+	UPROPERTY(VisibleDefaultsOnly)
+	class UParticleSystemComponent* ParticleComponent;
+
+	UPROPERTY(VisibleDefaultsOnly)
+	bool bBurning;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

@@ -31,6 +31,8 @@ public:
 	virtual void EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
 	void PlayFire();
+
+	void BurningDamage();
 	
 	UPROPERTY(VisibleDefaultsOnly)
 	class UParticleSystem* FireParticle;
@@ -42,9 +44,14 @@ public:
 
 	FTimerHandle DamageTimerHandle;
 
+	FTimerHandle BurningTimerHandle;
+
 	UPROPERTY(EditAnywhere)
 	float StartTime;
 	
 	UPROPERTY(EditAnywhere)
 	float CycleTime;
+
+	UPROPERTY(EditAnywhere)
+	int32 DamageTimes;
 };
