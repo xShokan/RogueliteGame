@@ -98,12 +98,12 @@ void ARifleAmmoActor::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 		{
 			if (Hit.Location.Z > DamageAICharacter->HeadLowBoundZ)
 			{
-				UGameplayStatics::ApplyDamage(DamageAICharacter, DamageTime * Damage, nullptr, GetInstigator(), nullptr);
+				UGameplayStatics::ApplyDamage(DamageAICharacter, DamageTime * Damage, nullptr, GetInstigator()->GetInstigator(), nullptr);
 				SpawnFloatingDamage(DamageTime * Damage);
 			}
 			else
 			{
-				UGameplayStatics::ApplyDamage(DamageAICharacter, Damage, nullptr, GetInstigator(), nullptr);
+				UGameplayStatics::ApplyDamage(DamageAICharacter, Damage, nullptr, GetInstigator()->GetInstigator(), nullptr);
 				SpawnFloatingDamage(Damage);
 			}
 			Destroy();
@@ -113,7 +113,7 @@ void ARifleAmmoActor::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 		// Hit Person
 		if (DamageMyFirstPersonCharacter && DamageMyFirstPersonCharacter->CurrentHealth > 0.1f)
 		{
-			UGameplayStatics::ApplyDamage(DamageMyFirstPersonCharacter, Damage, nullptr, GetInstigator(), nullptr);
+			UGameplayStatics::ApplyDamage(DamageMyFirstPersonCharacter, Damage, nullptr, GetInstigator()->GetInstigator(), nullptr);
 			Destroy();
 		}
 	}

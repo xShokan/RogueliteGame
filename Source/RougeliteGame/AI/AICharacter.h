@@ -47,6 +47,19 @@ public:
 	UPROPERTY(VisibleDefaultsOnly)
 	float HeadLowBoundZ;
 
+	UPROPERTY(EditAnywhere)
+	int32 GoldReward;
+	
+	UPROPERTY(EditAnywhere)
+	int32 FireAmmoNum;
+
+	int32 FireAmmoCount;
+
+	FTimerHandle FireHandle;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite)
+	bool bAttacked;
+
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	
 	UFUNCTION(BlueprintCallable)
@@ -54,4 +67,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void Fire();
+
+	void FireOnce();
 };

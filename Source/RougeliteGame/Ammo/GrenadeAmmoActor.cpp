@@ -95,12 +95,12 @@ void AGrenadeAmmoActor::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, 
 		{
 			if (Hit.Location.Z > DamageCharacter->HeadLowBoundZ)
 			{
-				UGameplayStatics::ApplyDamage(DamageCharacter, DamageTime * Damage, nullptr, GetInstigator(), nullptr);
+				UGameplayStatics::ApplyDamage(DamageCharacter, DamageTime * Damage, nullptr, GetInstigator()->GetInstigator(), nullptr);
 				SpawnFloatingDamage(DamageTime * Damage);
 			}
 			else
 			{
-				UGameplayStatics::ApplyDamage(DamageCharacter, Damage, nullptr, GetInstigator(), nullptr);
+				UGameplayStatics::ApplyDamage(DamageCharacter, Damage, nullptr, GetInstigator()->GetInstigator(), nullptr);
 				SpawnFloatingDamage(Damage);
 			}
 			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), AmmoExplosionParticle, GetActorLocation(), GetActorRotation());

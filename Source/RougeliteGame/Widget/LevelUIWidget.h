@@ -36,8 +36,11 @@ public:
 	UPROPERTY(Meta=(BindWidget))
 	class UTextBlock* WeaponNameLabel;
 
+	UPROPERTY(Meta=(BindWidget))
+	class UTextBlock* GoldLabel;
+
 	UPROPERTY(VisibleDefaultsOnly)
-	class ARougeliteGameGameModeBase* RougeliteGameGameMode;
+	class AFirstPersonCharacter* FirstPersonCharacter;
     
 protected:
 
@@ -46,5 +49,8 @@ protected:
     // virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	UFUNCTION()
-	void ChangeUI(float CurrentHealth, float MaxHealth, int32 AmmoNumInClip, int32 AmmoTotalNum, FString WeaponName);
+	void ChangeHealthAndAmmo(float CurrentHealth, float MaxHealth, int32 AmmoNumInClip, int32 AmmoTotalNum, FString WeaponName);
+
+	UFUNCTION()
+	void ChangeGold(int32 GoldCount);
 };

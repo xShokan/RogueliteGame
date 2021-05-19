@@ -16,6 +16,7 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "LevelThings/TreasureChest.h"
 #include "Particles/ParticleSystemComponent.h"
 
 // Sets default values
@@ -88,6 +89,8 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 
 	bAim = false;
 	bBurning = false;
+	bOverlappingTreasureChest = false;
+	GoldNum = 0;
 }
 
 // Called when the game starts or when spawned
@@ -119,11 +122,15 @@ void AFirstPersonCharacter::BeginPlay()
 		WeaponArray[1]->SetActorHiddenInGame(true);
 	}
 
-	RougeliteGameGameMode = Cast<ARougeliteGameGameModeBase>(UGameplayStatics::GetGameMode(this));
-	if (RougeliteGameGameMode)
+
+	if (OnUIChange.IsBound() && OnGoldAdd.IsBound())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GameMode Succeed"));
-		RougeliteGameGameMode->OnTakeDamage.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+		OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+		OnGoldAdd.Broadcast(GoldNum);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AFirstPersonCharacter::BeginPlay not IsBound"));
 	}
 
 }
@@ -157,7 +164,16 @@ void AFirstPersonCharacter::Fire()
 		}
 	}*/
 	Weapon->Fire();
-	RougeliteGameGameMode->OnTakeDamage.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+	if (OnUIChange.IsBound())
+	{
+		OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AFirstPersonCharacter::Fire not IsBound"));
+	}
+	
+	
 }
 
 void AFirstPersonCharacter::Reload()
@@ -172,7 +188,14 @@ void AFirstPersonCharacter::Reload()
 		}
 	}*/
 	Weapon->Reload();
-	RougeliteGameGameMode->OnTakeDamage.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+	if (OnUIChange.IsBound())
+	{
+		OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AFirstPersonCharacter::Reload not IsBound"));
+	}
 }
 
 void AFirstPersonCharacter::SwitchWeapon()
@@ -220,6 +243,14 @@ void AFirstPersonCharacter::StopAim()
 	}
 }
 
+void AFirstPersonCharacter::Open()
+{
+	if (bOverlappingTreasureChest && TreasureChest)
+	{
+		TreasureChest->Open();
+	}
+}
+
 // Called every frame
 void AFirstPersonCharacter::Tick(float DeltaTime)
 {
@@ -245,6 +276,7 @@ void AFirstPersonCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	PlayerInputComponent->BindAction(TEXT("Sprint"), IE_Released, this, &AFirstPersonCharacter::StopSprint);
 	PlayerInputComponent->BindAction(TEXT("Aim"), IE_Pressed, this, &AFirstPersonCharacter::StartAim);
 	PlayerInputComponent->BindAction(TEXT("Aim"), IE_Released, this, &AFirstPersonCharacter::StopAim);
+	PlayerInputComponent->BindAction(TEXT("Interaction"), IE_Pressed, this, &AFirstPersonCharacter::Open);
 
 }
 
@@ -252,7 +284,13 @@ float AFirstPersonCharacter::TakeDamage(float DamageAmount, FDamageEvent const& 
 	AController* EventInstigator, AActor* DamageCauser)
 {
 	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.0f, MaxHealth);
-	RougeliteGameGameMode->OnTakeDamage.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+	if (OnUIChange.IsBound())
+	{
+		OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AFirstPersonCharacter::TakeDamage not IsBound"));
+	}
 	return 0.0f;
 }
-

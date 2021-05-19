@@ -6,7 +6,11 @@
 
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
+
 #include "FirstPersonCharacter.generated.h"
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FUIChange, float, CurrentHealth, float, MaxHealth, int32, AmmoNumInClip, int32, AmmoTotalNum, FString, WeaponName);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGoldNum, int32, GoldCount);
 
 UCLASS()
 class ROUGELITEGAME_API AFirstPersonCharacter : public ACharacter
@@ -61,6 +65,21 @@ public:
 	UPROPERTY(VisibleDefaultsOnly)
 	bool bBurning;
 
+	UPROPERTY(VisibleDefaultsOnly)
+	bool bOverlappingTreasureChest;
+
+	UPROPERTY(VisibleDefaultsOnly)
+	class ATreasureChest* TreasureChest;
+
+	UPROPERTY(VisibleDefaultsOnly)
+	int32 GoldNum;
+
+	UPROPERTY(BlueprintAssignable)
+	FUIChange OnUIChange;
+
+	UPROPERTY(BlueprintAssignable)
+	FGoldNum OnGoldAdd;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -86,6 +105,8 @@ protected:
 
 	void StopAim();
 
+	void Open();
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -94,5 +115,4 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
-
 };

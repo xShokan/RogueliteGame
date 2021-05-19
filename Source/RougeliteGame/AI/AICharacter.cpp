@@ -3,11 +3,10 @@
 
 #include "AICharacter.h"
 
-
-
 #include "AIController.h"
 #include "Widget/AIHealthWidget.h"
 #include "ConstructorHelpers.h"
+#include "FirstPersonCharacter.h"
 #include "Weapon/RifleGunActor.h"
 #include "HumanAIController.h"
 #include "WidgetComponent.h"
@@ -18,6 +17,10 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
+#include "RougeliteGameGameModeBase.h"
+#include "TimerManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values
 AAICharacter::AAICharacter()
@@ -65,6 +68,11 @@ AAICharacter::AAICharacter()
 	GetCharacterMovement()->MaxWalkSpeed = 120.0f;
 
 	bUseControllerRotationYaw = true;
+
+	GoldReward = 1;
+	FireAmmoNum = 5;
+	FireAmmoCount = FireAmmoNum;
+	bAttacked = false;
 }
 
 // Called when the game starts or when spawned
@@ -89,6 +97,7 @@ void AAICharacter::BeginPlay()
 	{
 		Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
 		Weapon->Instigator = this;
+		Weapon->AmmoNumInClip = 1000;
 	}
 
 	HealthBarComponent->SetVisibility(false);
@@ -120,8 +129,32 @@ float AAICharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 		AHumanAIController* MyAIController = Cast<AHumanAIController>(GetController());
 		MyAIController->GetBlackboardComponent()->SetValueAsBool(FName("bDied"), true);
 		AIMeshComponent->PlayAnimation(DeathAnimation, false);
+
+		AFirstPersonCharacter* DamageCauserCharacter = Cast<AFirstPersonCharacter>(DamageCauser);
+		if (DamageCauserCharacter)
+		{
+			DamageCauserCharacter->GoldNum += GoldReward;
+
+			if (DamageCauserCharacter->OnUIChange.IsBound())
+			{
+				DamageCauserCharacter->OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("AAICharacter::TakeDamage not IsBound"));
+			}
+		}
+		
 		Weapon->SetLifeSpan(5.0f);
 		SetLifeSpan(5.0f);
+	}
+
+	AHumanAIController* HumanAIController = Cast<AHumanAIController>(GetController());
+	if (HumanAIController)
+	{
+		HumanAIController->GetBlackboardComponent()->SetValueAsBool(FName("HasBeenAttacked"), UKismetMathLibrary::RandomBool());
+		HumanAIController->GetBlackboardComponent()->SetValueAsBool(FName("HasLineOfSight"), true);
+		HumanAIController->GetBlackboardComponent()->SetValueAsObject(FName("AIActor"), DamageCauser);
 	}
 	return 0.0f;
 }
@@ -133,6 +166,20 @@ void AAICharacter::UpdateWalkSpeed(float Speed)
 
 void AAICharacter::Fire()
 {
-	Weapon->Fire();
+	GetWorld()->GetTimerManager().SetTimer(FireHandle, this, &AAICharacter::FireOnce, 0.3f, true);
+}
+
+void AAICharacter::FireOnce()
+{
+	if (FireAmmoCount > 0 && CurrentHealth > 0.1f)
+	{
+		Weapon->Fire();
+		FireAmmoCount -= 1;
+	}
+	else
+	{
+		GetWorld()->GetTimerManager().ClearTimer(FireHandle);
+		FireAmmoCount = FireAmmoNum;
+	}
 }
 

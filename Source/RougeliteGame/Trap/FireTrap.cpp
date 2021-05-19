@@ -127,7 +127,7 @@ void AFireTrap::BurningDamage()
 			DamageTimes--;
 		}
 	}
-	else
+	else if (DamageCharacter)
 	{
 		DamageCharacter->bBurning = false;
 		DamageCharacter->ParticleComponent->Deactivate();

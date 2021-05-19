@@ -4,6 +4,8 @@
 #include "LevelUIWidget.h"
 
 
+
+#include "FirstPersonCharacter.h"
 #include "RougeliteGameGameModeBase.h"
 #include "TextBlock.h"
 #include "Weapon/WeaponBaseActor.h"
@@ -17,11 +19,11 @@ void ULevelUIWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	RougeliteGameGameMode = Cast<ARougeliteGameGameModeBase>(UGameplayStatics::GetGameMode(this));
-	if (RougeliteGameGameMode)
+	FirstPersonCharacter = Cast<AFirstPersonCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+	if (FirstPersonCharacter)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("OwnerCharacter fail"));
-		RougeliteGameGameMode->OnTakeDamage.AddDynamic(this, &ULevelUIWidget::ChangeUI);
+		FirstPersonCharacter->OnUIChange.AddDynamic(this, &ULevelUIWidget::ChangeHealthAndAmmo);
+		FirstPersonCharacter->OnGoldAdd.AddDynamic(this, &ULevelUIWidget::ChangeGold);
 	}
 }
 
@@ -38,7 +40,7 @@ void ULevelUIWidget::NativeConstruct()
 	WeaponNameLabel->SetText(FText::AsCultureInvariant(OwnerCharacter->Weapon->Name));
 }*/
 
-void ULevelUIWidget::ChangeUI(float CurrentHealth, float MaxHealth, int32 AmmoNumInClip, int32 AmmoTotalNum, FString WeaponName)
+void ULevelUIWidget::ChangeHealthAndAmmo(float CurrentHealth, float MaxHealth, int32 AmmoNumInClip, int32 AmmoTotalNum, FString WeaponName)
 {
 	HealthBar->SetPercent(CurrentHealth / MaxHealth);
 	CurrentHealthLabel->SetText(FText::AsNumber(CurrentHealth));
@@ -47,4 +49,9 @@ void ULevelUIWidget::ChangeUI(float CurrentHealth, float MaxHealth, int32 AmmoNu
 	AmmoNumInClipLabel->SetText(FText::AsNumber(AmmoNumInClip));
 	AmmoTotalNumLabel->SetText(FText::AsNumber(AmmoTotalNum));
 	WeaponNameLabel->SetText(FText::AsCultureInvariant(WeaponName));
+}
+
+void ULevelUIWidget::ChangeGold(int32 GoldCount)
+{
+	GoldLabel->SetText(FText::AsNumber(GoldCount));
 }
