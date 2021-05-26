@@ -4,7 +4,7 @@
 
 #include "ConstructorHelpers.h"
 #include "GeometryCollectionSimulationCoreTypes.h"
-#include "RougeliteGameGameModeBase.h"
+#include "UnrealNetwork.h"
 #include "Weapon/GrenadeGunActor.h"
 #include "Weapon/RifleGunActor.h"
 #include "Animation/AnimBlueprint.h"
@@ -23,12 +23,12 @@
 AFirstPersonCharacter::AFirstPersonCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	// Create a CameraComponent	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCameraComponent->SetupAttachment(RootComponent);
-	FirstPersonCameraComponent->SetRelativeLocation(FVector(-29.56f, 1.75f, 54.0f)); // Position the camera
+	FirstPersonCameraComponent->SetRelativeLocation(FVector(0.439999, 1.75f, 74.0f)); // Position the camera
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
 	
 	// Set a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
@@ -104,7 +104,8 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	CurrentHealth = MaxHealth - 10.0f;
 	
 	WeaponArray.Init(Weapon, 2);
-	WeaponArrayCopy.Init(WeaponCopy, 2);
+	/*WeaponArrayFirstPerson.Init(WeaponFirstPerson, 2);
+	WeaponArrayThirdPerson.Init(WeaponThirdPerson, 2);*/
 	// 0 is default weapon
 	WeaponIndex = 0;
 
@@ -114,6 +115,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	bBurning = false;
 	bOverlappingTreasureChest = false;
 	GoldNum = 0;
+	// bUseControllerRotationPitch = true;
 }
 
 // Called when the game starts or when spawned
@@ -136,8 +138,6 @@ void AFirstPersonCharacter::BeginPlay()
 		{
 			WeaponArray[0]->AttachToComponent(FirstPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
 			WeaponArray[0]->Instigator = this;
-			WeaponArray[0]->SetOwner(this);
-			// WeaponArray[0]->SetActorHiddenInGame(true);
 			Weapon = WeaponArray[WeaponIndex];
 		}
 
@@ -146,28 +146,51 @@ void AFirstPersonCharacter::BeginPlay()
 		{
 			WeaponArray[1]->AttachToComponent(FirstPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
 			WeaponArray[1]->Instigator = this;
-			WeaponArray[1]->SetOwner(this);
 			WeaponArray[1]->SetActorHiddenInGame(true);
 		}
+		// Weapon->WeaponMeshComponent->SetOnlyOwnerSee(true);
 	}
 
-	// Copy weapon
+	/*// First person weapon
 	if (IsLocallyControlled())
 	{
-		WeaponArrayCopy[0] = GetWorld()->SpawnActor<ARifleGunActor>(ARifleGunActor::StaticClass(), WeaponTransform, SpawnParameters);
-		if (WeaponArrayCopy[0])
+		WeaponArrayFirstPerson[0] = GetWorld()->SpawnActor<ARifleGunActor>(ARifleGunActor::StaticClass(), WeaponTransform, SpawnParameters);
+		if (WeaponArrayFirstPerson[0])
 		{
-			WeaponArrayCopy[0]->AttachToComponent(ThirdPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
-			WeaponCopy = WeaponArrayCopy[WeaponIndex];
+			WeaponArrayFirstPerson[0]->AttachToComponent(FirstPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
+			WeaponFirstPerson = WeaponArrayFirstPerson[WeaponIndex];
 		}
 
-		WeaponArrayCopy[1] = GetWorld()->SpawnActor<AGrenadeGunActor>(AGrenadeGunActor::StaticClass(), WeaponTransform, SpawnParameters);
-		if (WeaponArrayCopy[1])
+		WeaponArrayFirstPerson[1] = GetWorld()->SpawnActor<AGrenadeGunActor>(AGrenadeGunActor::StaticClass(), WeaponTransform, SpawnParameters);
+		if (WeaponArrayFirstPerson[1])
 		{
-			WeaponArrayCopy[1]->AttachToComponent(ThirdPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
-			WeaponArrayCopy[1]->SetActorHiddenInGame(true);
+			WeaponArrayFirstPerson[1]->AttachToComponent(FirstPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
+			WeaponArrayFirstPerson[1]->SetActorHiddenInGame(true);
 		}
 	}
+
+	// Third person weapon
+	WeaponArrayThirdPerson[0] = GetWorld()->SpawnActor<ARifleGunActor>(ARifleGunActor::StaticClass(), WeaponTransform, SpawnParameters);
+	if (WeaponArrayThirdPerson[0])
+	{
+		WeaponArrayThirdPerson[0]->AttachToComponent(ThirdPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
+		WeaponThirdPerson = WeaponArrayThirdPerson[WeaponIndex];
+	}
+
+	WeaponArrayThirdPerson[1] = GetWorld()->SpawnActor<AGrenadeGunActor>(AGrenadeGunActor::StaticClass(), WeaponTransform, SpawnParameters);
+	if (WeaponArrayThirdPerson[1])
+	{
+		WeaponArrayThirdPerson[1]->AttachToComponent(ThirdPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
+		WeaponArrayThirdPerson[1]->SetActorHiddenInGame(true);
+	}
+	WeaponThirdPerson->WeaponMeshComponent->SetOwnerNoSee(true);*/
+	
+	// SetWeaponVisibleOnClient(WeaponThirdPerson);
+	/*if (IsLocallyControlled())
+	{
+		WeaponArrayThirdPerson[0]->SetActorHiddenInGame(true);
+		WeaponArrayThirdPerson[1]->SetActorHiddenInGame(true);
+	}*/
 
 
 	if (OnUIChange.IsBound() && OnGoldAdd.IsBound() && Weapon)
@@ -332,10 +355,64 @@ float AFirstPersonCharacter::TakeDamage(float DamageAmount, FDamageEvent const& 
 	return 0.0f;
 }
 
+void AFirstPersonCharacter::AddControllerPitchInput(float Val)
+{
+	Super::AddControllerPitchInput(Val);
+
+	if (IsLocallyControlled())
+	{
+		FRotator ControllerRotator = GetControlRotation();
+		UpdateRotator(ControllerRotator);
+	}
+	/*else
+	{
+		FRotator ControllerRotator = GetControlRotation();
+		UpdateRotatorMulticast(ControllerRotator);
+	}*/
+}
+
+void AFirstPersonCharacter::UpdateRotatorMulticast_Implementation(FRotator NewRotator)
+{
+	FirstPersonCameraComponent->SetWorldRotation(NewRotator);
+}
+
+void AFirstPersonCharacter::UpdateRotator_Implementation(FRotator NewRotator)
+{
+	FirstPersonCameraComponent->SetWorldRotation(NewRotator);
+	// ThirdPersonMesh->SetWorldRotation(NewRotator);
+	GetController()->SetControlRotation(NewRotator);
+
+
+	FRotator DeltaRotator = GetActorRotation() - GetControlRotation();
+	DeltaRotator.Normalize();
+	DeltaYaw = DeltaRotator.Yaw;
+	DeltaPitch = -DeltaRotator.Pitch;
+
+	UpdateRotatorMulticast(NewRotator);
+}
+
+void AFirstPersonCharacter::SetWeaponVisibleOnClient_Implementation(AWeaponBaseActor* WeaponToBeHidden)
+{
+	WeaponToBeHidden->SetActorHiddenInGame(true);
+}
+
+void AFirstPersonCharacter::SetWeaponVisible_Implementation(AWeaponBaseActor* WeaponToBeHidden)
+{
+	WeaponToBeHidden->SetActorHiddenInGame(true);
+}
+
 void AFirstPersonCharacter::PlayMontageMulticast_Implementation()
 {
 	if (FireAnimation)
 	{
 		PlayAnimMontage(FireAnimation);
 	}
+}
+
+void AFirstPersonCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AFirstPersonCharacter, DeltaYaw);
+	DOREPLIFETIME(AFirstPersonCharacter, DeltaPitch);
 }

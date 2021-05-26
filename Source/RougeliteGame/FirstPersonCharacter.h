@@ -40,12 +40,19 @@ public:
 	UPROPERTY(VisibleDefaultsOnly)
 	TArray<class AWeaponBaseActor*> WeaponArray;
 
-	// Weapon actor, copy real weapon to show in client
+	/*// Weapon actor, copy real weapon, only owner can see
 	UPROPERTY(VisibleDefaultsOnly, Category=Weapon)
-	class AWeaponBaseActor* WeaponCopy;
+	class AWeaponBaseActor* WeaponFirstPerson;
 	
 	UPROPERTY(VisibleDefaultsOnly)
-	TArray<class AWeaponBaseActor*> WeaponArrayCopy;
+	TArray<class AWeaponBaseActor*> WeaponArrayFirstPerson;
+
+	// Weapon actor, copy real weapon to show in client, only other players can see
+	UPROPERTY(VisibleDefaultsOnly, Category=Weapon)
+	class AWeaponBaseActor* WeaponThirdPerson;
+	
+	UPROPERTY(VisibleDefaultsOnly)
+	TArray<class AWeaponBaseActor*> WeaponArrayThirdPerson;*/
 
 	// the index of weapon that we using
 	UPROPERTY(VisibleDefaultsOnly)
@@ -91,6 +98,12 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FGoldNum OnGoldAdd;
 
+	UPROPERTY(BlueprintReadOnly, Replicated)
+	float DeltaYaw;
+
+	UPROPERTY(BlueprintReadOnly, Replicated)
+	float DeltaPitch;
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -127,6 +140,14 @@ public:
 
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
+	virtual void AddControllerPitchInput(float Val) override;
+
+	UFUNCTION(Server, Reliable)
+	void UpdateRotator(FRotator NewRotator);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void UpdateRotatorMulticast(FRotator NewRotator);
+
 	UFUNCTION(Server, Reliable)
     void HandleFireOnServer();
 
@@ -135,4 +156,12 @@ public:
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void PlayMontageMulticast();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void SetWeaponVisible(class AWeaponBaseActor* WeaponToBeHidden);
+
+	UFUNCTION(Client, Reliable)
+	void SetWeaponVisibleOnClient(class AWeaponBaseActor* WeaponToBeHidden);
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
