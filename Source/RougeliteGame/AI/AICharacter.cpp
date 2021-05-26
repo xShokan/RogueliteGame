@@ -16,11 +16,10 @@
 #include "Engine/Engine.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "NavigationSystem.h"
-#include "NavigationPath.h"
-#include "RougeliteGameGameModeBase.h"
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 AAICharacter::AAICharacter()
@@ -79,10 +78,7 @@ AAICharacter::AAICharacter()
 void AAICharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	if (AIControllerClass)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AIControllerClass:%s"), *AIControllerClass->GetName());
-	}
+	
 	UAIHealthWidget *HealthBar = Cast<UAIHealthWidget>(HealthBarComponent->GetUserWidgetObject());
 	HealthBar->SetOwnerCharacter(this);
 
@@ -121,34 +117,20 @@ void AAICharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 float AAICharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
 	AActor* DamageCauser)
 {
-	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.0f, MaxHealth);
+	float DamageApplied = CurrentHealth - DamageAmount;	
 	HealthBarComponent->SetVisibility(true);
-	// GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Orange, FString::SanitizeFloat(CurrentHealth));
+	SetCurrentHealth(DamageApplied);
+
 	if (CurrentHealth < 0.1f)
 	{
-		AHumanAIController* MyAIController = Cast<AHumanAIController>(GetController());
-		MyAIController->GetBlackboardComponent()->SetValueAsBool(FName("bDied"), true);
-		AIMeshComponent->PlayAnimation(DeathAnimation, false);
-
 		AFirstPersonCharacter* DamageCauserCharacter = Cast<AFirstPersonCharacter>(DamageCauser);
 		if (DamageCauserCharacter)
 		{
 			DamageCauserCharacter->GoldNum += GoldReward;
-
-			if (DamageCauserCharacter->OnUIChange.IsBound())
-			{
-				DamageCauserCharacter->OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("AAICharacter::TakeDamage not IsBound"));
-			}
+			DamageCauserCharacter->OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
 		}
-		
-		Weapon->SetLifeSpan(5.0f);
-		SetLifeSpan(5.0f);
 	}
-
+	
 	AHumanAIController* HumanAIController = Cast<AHumanAIController>(GetController());
 	if (HumanAIController)
 	{
@@ -156,7 +138,7 @@ float AAICharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 		HumanAIController->GetBlackboardComponent()->SetValueAsBool(FName("HasLineOfSight"), true);
 		HumanAIController->GetBlackboardComponent()->SetValueAsObject(FName("AIActor"), DamageCauser);
 	}
-	return 0.0f;
+	return DamageApplied;
 }
 
 void AAICharacter::UpdateWalkSpeed(float Speed)
@@ -181,5 +163,48 @@ void AAICharacter::FireOnce()
 		GetWorld()->GetTimerManager().ClearTimer(FireHandle);
 		FireAmmoCount = FireAmmoNum;
 	}
+}
+
+void AAICharacter::OnRep_CurrentHealth()
+{
+	OnHealthUpdate();
+}
+
+void AAICharacter::OnHealthUpdate()
+{
+	//Client-specific functionality
+	if (IsLocallyControlled())
+	{
+		if (CurrentHealth < 0.1f)
+		{
+			AIMeshComponent->PlayAnimation(DeathAnimation, false);
+			DetachFromControllerPendingDestroy();
+		
+			Weapon->SetLifeSpan(5.0f);
+			SetLifeSpan(5.0f);
+		}
+	}
+
+	//Server-specific functionality
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		
+	}
+}
+
+void AAICharacter::SetCurrentHealth(float HealthValue)
+{
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		CurrentHealth = FMath::Clamp(HealthValue, 0.0f, MaxHealth);
+		OnHealthUpdate();
+	}
+}
+
+void AAICharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AAICharacter, CurrentHealth);
 }
 

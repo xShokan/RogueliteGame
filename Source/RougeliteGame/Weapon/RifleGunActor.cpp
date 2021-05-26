@@ -76,9 +76,6 @@ void ARifleGunActor::Fire()
 		ARifleAmmoActor* AmmoActor = GetWorld()->SpawnActor<ARifleAmmoActor>(ARifleAmmoActor::StaticClass(), AmmoTransform, SpawnParameters);
 		AmmoActor->Instigator = this->GetInstigator();
 
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), WeaponShotParticle, AmmoTransform);
-		UGameplayStatics::PlaySoundAtLocation(this, WeaponShotSound, AmmoTransform.GetLocation());
-
 		AmmoNumInClip--;
 	}
 }

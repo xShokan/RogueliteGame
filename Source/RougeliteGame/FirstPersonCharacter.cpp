@@ -28,30 +28,52 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	// Create a CameraComponent	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCameraComponent->SetupAttachment(RootComponent);
-	FirstPersonCameraComponent->SetRelativeLocation(FVector(-39.56f, 1.75f, 64.0f)); // Position the camera
+	FirstPersonCameraComponent->SetRelativeLocation(FVector(-29.56f, 1.75f, 54.0f)); // Position the camera
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
 	
 	// Set a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
-	Mesh1P = GetMesh();
-	Mesh1P->SetupAttachment(FirstPersonCameraComponent);
-	Mesh1P->bCastDynamicShadow = false;
-	Mesh1P->CastShadow = false;
-	Mesh1P->SetRelativeRotation(FRotator(1.9f, -19.190001f, 5.2f));
-	Mesh1P->SetRelativeLocation(FVector(-0.5f, -4.4f, -155.699997f));
+	FirstPersonMesh = GetMesh();
+	FirstPersonMesh->SetupAttachment(FirstPersonCameraComponent);
+	FirstPersonMesh->bCastDynamicShadow = false;
+	FirstPersonMesh->CastShadow = false;
+	FirstPersonMesh->SetRelativeRotation(FRotator(1.9f, -19.190001f, 5.2f));
+	FirstPersonMesh->SetRelativeLocation(FVector(-0.5f, -4.4f, -155.699997f));
+	FirstPersonMesh->SetOnlyOwnerSee(true);
+
+	// Set a mesh component that will be used when being viewed from other players
+	ThirdPersonMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ThirdPersonMesh"));
+	ThirdPersonMesh->SetupAttachment(RootComponent);
+	ThirdPersonMesh->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+	ThirdPersonMesh->SetRelativeLocation(FVector(-0.0f, -0.0f, -90.0f));
+	ThirdPersonMesh->SetOwnerNoSee(true);
 
 	// Set character skeletal mesh
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SkeletalMesh1P(TEXT("/Game/FirstPerson/Character/Mesh/SK_Mannequin_Arms"));
-    if (SkeletalMesh1P.Succeeded())
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> FirstPersonSkeletalMesh(TEXT("/Game/FirstPerson/Character/Mesh/SK_Mannequin_Arms"));
+    if (FirstPersonSkeletalMesh.Succeeded())
     {
-	    Mesh1P->SetSkeletalMesh(SkeletalMesh1P.Object);
+	    FirstPersonMesh->SetSkeletalMesh(FirstPersonSkeletalMesh.Object);
     }
+
+	// Set character skeletal mesh
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> ThirdPersonSkeletalMesh(TEXT("SkeletalMesh'/Game/AnimStarterPack/UE4_Mannequin/Mesh/SK_Mannequin.SK_Mannequin'"));
+	if (ThirdPersonSkeletalMesh.Succeeded())
+	{
+		ThirdPersonMesh->SetSkeletalMesh(ThirdPersonSkeletalMesh.Object);
+	}
 	
-	static ConstructorHelpers::FObjectFinder<UAnimBlueprint> AnimBlueprint(TEXT("AnimBlueprint'/Game/Animation/BP_MyCharacterAnim.BP_MyCharacterAnim'"));
-    if (AnimBlueprint.Succeeded())
+	static ConstructorHelpers::FObjectFinder<UAnimBlueprint> FirstPersonAnim(TEXT("AnimBlueprint'/Game/Animation/BP_MyCharacterAnim.BP_MyCharacterAnim'"));
+    if (FirstPersonAnim.Succeeded())
     {
-	    Mesh1P->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-        Mesh1P->SetAnimInstanceClass(AnimBlueprint.Object->GeneratedClass);
+	    FirstPersonMesh->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+        FirstPersonMesh->SetAnimInstanceClass(FirstPersonAnim.Object->GeneratedClass);
     }
+
+	static ConstructorHelpers::FObjectFinder<UAnimBlueprint> ThirdPersonAnim(TEXT("AnimBlueprint'/Game/Animation/BP_ThirdPersopnAnim.BP_ThirdPersopnAnim'"));
+	if (ThirdPersonAnim.Succeeded())
+	{
+		ThirdPersonMesh->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+		ThirdPersonMesh->SetAnimInstanceClass(ThirdPersonAnim.Object->GeneratedClass);
+	}
 
 	// Set fire montage
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> FireMontage(TEXT("AnimMontage'/Game/FirstPerson/Animations/FirstPersonFire_Montage.FirstPersonFire_Montage'"));
@@ -82,6 +104,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	CurrentHealth = MaxHealth - 10.0f;
 	
 	WeaponArray.Init(Weapon, 2);
+	WeaponArrayCopy.Init(WeaponCopy, 2);
 	// 0 is default weapon
 	WeaponIndex = 0;
 
@@ -104,26 +127,50 @@ void AFirstPersonCharacter::BeginPlay()
 	FTransform WeaponTransform;
 	WeaponTransform.SetLocation(FVector::ZeroVector);
 	WeaponTransform.SetRotation(FQuat(FRotator::ZeroRotator));
-	
-	WeaponArray[0] = GetWorld()->SpawnActor<ARifleGunActor>(ARifleGunActor::StaticClass(), WeaponTransform, SpawnParameters);
-	if (WeaponArray[0])
+
+	// Real weapon
+	if (GetLocalRole() == ROLE_Authority)
 	{
-		WeaponArray[0]->AttachToComponent(Mesh1P, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
-		WeaponArray[0]->Instigator = this;
-		// WeaponArray[0]->SetActorHiddenInGame(true);
-		Weapon = WeaponArray[WeaponIndex];
+		WeaponArray[0] = GetWorld()->SpawnActor<ARifleGunActor>(ARifleGunActor::StaticClass(), WeaponTransform, SpawnParameters);
+		if (WeaponArray[0])
+		{
+			WeaponArray[0]->AttachToComponent(FirstPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
+			WeaponArray[0]->Instigator = this;
+			WeaponArray[0]->SetOwner(this);
+			// WeaponArray[0]->SetActorHiddenInGame(true);
+			Weapon = WeaponArray[WeaponIndex];
+		}
+
+		WeaponArray[1] = GetWorld()->SpawnActor<AGrenadeGunActor>(AGrenadeGunActor::StaticClass(), WeaponTransform, SpawnParameters);
+		if (WeaponArray[1])
+		{
+			WeaponArray[1]->AttachToComponent(FirstPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
+			WeaponArray[1]->Instigator = this;
+			WeaponArray[1]->SetOwner(this);
+			WeaponArray[1]->SetActorHiddenInGame(true);
+		}
 	}
 
-	WeaponArray[1] = GetWorld()->SpawnActor<AGrenadeGunActor>(AGrenadeGunActor::StaticClass(), WeaponTransform, SpawnParameters);
-	if (WeaponArray[1])
+	// Copy weapon
+	if (IsLocallyControlled())
 	{
-		WeaponArray[1]->AttachToComponent(Mesh1P, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
-		WeaponArray[1]->Instigator = this;
-		WeaponArray[1]->SetActorHiddenInGame(true);
+		WeaponArrayCopy[0] = GetWorld()->SpawnActor<ARifleGunActor>(ARifleGunActor::StaticClass(), WeaponTransform, SpawnParameters);
+		if (WeaponArrayCopy[0])
+		{
+			WeaponArrayCopy[0]->AttachToComponent(ThirdPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
+			WeaponCopy = WeaponArrayCopy[WeaponIndex];
+		}
+
+		WeaponArrayCopy[1] = GetWorld()->SpawnActor<AGrenadeGunActor>(AGrenadeGunActor::StaticClass(), WeaponTransform, SpawnParameters);
+		if (WeaponArrayCopy[1])
+		{
+			WeaponArrayCopy[1]->AttachToComponent(ThirdPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
+			WeaponArrayCopy[1]->SetActorHiddenInGame(true);
+		}
 	}
 
 
-	if (OnUIChange.IsBound() && OnGoldAdd.IsBound())
+	if (OnUIChange.IsBound() && OnGoldAdd.IsBound() && Weapon)
 	{
 		OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
 		OnGoldAdd.Broadcast(GoldNum);
@@ -155,25 +202,17 @@ void AFirstPersonCharacter::MoveRight(float Val)
 
 void AFirstPersonCharacter::Fire()
 {
-	/*if (FireAnimation)
+	HandleFireOnServer();
+}
+
+void AFirstPersonCharacter::HandleFireOnServer_Implementation()
+{
+	if (Weapon->AmmoNumInClip > 0)
 	{
-		UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
-		if (AnimInstance)
-		{
-			AnimInstance->Montage_Play(FireAnimation);
-		}
-	}*/
-	Weapon->Fire();
-	if (OnUIChange.IsBound())
-	{
-		OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+		PlayMontageMulticast();
+		Weapon->Fire();
+        OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AFirstPersonCharacter::Fire not IsBound"));
-	}
-	
-	
 }
 
 void AFirstPersonCharacter::Reload()
@@ -188,17 +227,15 @@ void AFirstPersonCharacter::Reload()
 		}
 	}*/
 	Weapon->Reload();
-	if (OnUIChange.IsBound())
-	{
-		OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AFirstPersonCharacter::Reload not IsBound"));
-	}
+	OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
 }
 
 void AFirstPersonCharacter::SwitchWeapon()
+{
+	HandleSwitchWeaponOnSever();
+}
+
+void AFirstPersonCharacter::HandleSwitchWeaponOnSever_Implementation()
 {
 	Weapon->SetActorHiddenInGame(true);
 	if (WeaponIndex < WeaponArray.Num() - 1)
@@ -229,7 +266,7 @@ void AFirstPersonCharacter::StartAim()
 	{
 		bAim = true;
 		FirstPersonCameraComponent->SetRelativeLocation(FVector(35.439999f, 1.75f, 54.0f)); // Position the camera
-		Mesh1P->SetRelativeLocation(FVector(-60.0f, -13.0f, -143.0f));
+		FirstPersonMesh->SetRelativeLocation(FVector(-60.0f, -13.0f, -143.0f));
 	}
 }
 
@@ -239,7 +276,7 @@ void AFirstPersonCharacter::StopAim()
 	{
 		bAim = false;
 		FirstPersonCameraComponent->SetRelativeLocation(FVector(-39.56f, 1.75f, 64.0f)); // Position the camera
-		Mesh1P->SetRelativeLocation(FVector(-0.5f, -4.4f, -155.699997f));
+		FirstPersonMesh->SetRelativeLocation(FVector(-0.5f, -4.4f, -155.699997f));
 	}
 }
 
@@ -293,4 +330,12 @@ float AFirstPersonCharacter::TakeDamage(float DamageAmount, FDamageEvent const& 
 		UE_LOG(LogTemp, Warning, TEXT("AFirstPersonCharacter::TakeDamage not IsBound"));
 	}
 	return 0.0f;
+}
+
+void AFirstPersonCharacter::PlayMontageMulticast_Implementation()
+{
+	if (FireAnimation)
+	{
+		PlayAnimMontage(FireAnimation);
+	}
 }

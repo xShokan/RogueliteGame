@@ -23,6 +23,7 @@ AAmmoBaseActor::AAmmoBaseActor()
 	PrimaryActorTick.bCanEverTick = false;
 
 	AmmoMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Ammo"));
+	bReplicates = true;
 }
 
 // Called when the game starts or when spawned

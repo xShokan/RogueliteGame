@@ -19,7 +19,7 @@ class ROUGELITEGAME_API AFirstPersonCharacter : public ACharacter
 	
 	/** Pawn mesh: 1st person view (arms; seen only by self) */
     UPROPERTY(VisibleDefaultsOnly, Category=Mesh)
-    class USkeletalMeshComponent* Mesh1P;
+    class USkeletalMeshComponent* FirstPersonMesh;
     
     // Sets default values for this character's properties
     	AFirstPersonCharacter();
@@ -28,13 +28,24 @@ public:
 	/** First person camera */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
     class UCameraComponent* FirstPersonCameraComponent;
+
+	/** Pawn mesh: 3st person view (arms; seen only by others) */
+	UPROPERTY(VisibleDefaultsOnly, Category=Mesh)
+	class USkeletalMeshComponent* ThirdPersonMesh;
 	
-	// Weapon actor, gun0 by default
+	// Weapon actor
 	UPROPERTY(VisibleDefaultsOnly, Category=Weapon)
 	class AWeaponBaseActor* Weapon;
 	
 	UPROPERTY(VisibleDefaultsOnly)
 	TArray<class AWeaponBaseActor*> WeaponArray;
+
+	// Weapon actor, copy real weapon to show in client
+	UPROPERTY(VisibleDefaultsOnly, Category=Weapon)
+	class AWeaponBaseActor* WeaponCopy;
+	
+	UPROPERTY(VisibleDefaultsOnly)
+	TArray<class AWeaponBaseActor*> WeaponArrayCopy;
 
 	// the index of weapon that we using
 	UPROPERTY(VisibleDefaultsOnly)
@@ -115,4 +126,13 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	UFUNCTION(Server, Reliable)
+    void HandleFireOnServer();
+
+	UFUNCTION(Server, Reliable)
+    void HandleSwitchWeaponOnSever();
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void PlayMontageMulticast();
 };

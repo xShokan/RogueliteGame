@@ -2,6 +2,8 @@
 
 
 #include "HumanAIController.h"
+
+#include "AICharacter.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
@@ -9,6 +11,7 @@
 #include "ConstructorHelpers.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Perception/AIPerceptionComponent.h"
+#include "Perception/AISenseConfig_Damage.h"
 #include "Perception/AISenseConfig_Sight.h"
 
 AHumanAIController::AHumanAIController()
@@ -32,9 +35,14 @@ AHumanAIController::AHumanAIController()
 	Sight->DetectionByAffiliation.bDetectNeutrals = true;
 	PerceptionComponent->ConfigureSense(*Sight);
 	PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AHumanAIController::OnTargetPerceptionUpdated);
+	PerceptionComponent->OnPerceptionUpdated.AddDynamic(this, &AHumanAIController::OnPerceptionUpdated);
+
+	DamageSense = CreateDefaultSubobject<UAISenseConfig_Damage>(TEXT("DamageSense"));
+	PerceptionComponent->ConfigureSense(*DamageSense);
 
 	LineOfSightTimer = 4.0f;
 }
+
 
 void AHumanAIController::OnPossess(APawn* InPawn)
 {
@@ -60,6 +68,16 @@ void AHumanAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus AI
 		// UE_LOG(LogTemp, Warning, TEXT("AI gives up chasing the Player"));
 		AITimer = UKismetSystemLibrary::K2_SetTimer(this, TEXT("StartAITimer"), LineOfSightTimer, false);
 	}
+}
+
+void AHumanAIController::SetDie()
+{
+	GetBlackboardComponent()->SetValueAsBool(FName("bDied"), true);
+}
+
+void AHumanAIController::OnPerceptionUpdated(const TArray<AActor*>& UpdatedActors)
+{
+	UE_LOG(LogTemp, Warning, TEXT("AHumanAIController::OnPerceptionUpdated"));
 }
 
 void AHumanAIController::StartAITimer()

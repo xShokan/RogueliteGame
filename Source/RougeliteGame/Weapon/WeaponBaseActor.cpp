@@ -23,6 +23,8 @@ AWeaponBaseActor::AWeaponBaseActor()
 	RootComponent = WeaponMeshComponent;
 	WeaponMeshComponent->bCastDynamicShadow = false;
 	WeaponMeshComponent->CastShadow = false;
+
+	bReplicates = true;
 }
 
 // Called when the game starts or when spawned
@@ -40,18 +42,20 @@ void AWeaponBaseActor::Tick(float DeltaTime)
 
 void AWeaponBaseActor::Fire()
 {
-	Character = Cast<AFirstPersonCharacter>(GetInstigator());
+	/*Character = Cast<AFirstPersonCharacter>(GetInstigator());
 	if (AmmoNumInClip > 0)
 	{
-		if (Character && Character->FireAnimation && !Character->bAim)
+		if (Character && Character->FireAnimation)
 		{
-			UAnimInstance* AnimInstance = Character->GetMesh()->GetAnimInstance();
-			if (AnimInstance)
+			CharacterAnimInstance = Character->GetMesh()->GetAnimInstance();
+			if (CharacterAnimInstance && WeaponShotParticle && WeaponShotSound)
 			{
-				AnimInstance->Montage_Play(Character->FireAnimation);
+				// AnimInstance->Montage_Play(Character->FireAnimation);
+				PlayMontageEmitterSound(CharacterAnimInstance, Character->FireAnimation);
 			}
 		}
-	}
+	}*/
+	PlayEmitterSoundMulticast();
 }
 
 void AWeaponBaseActor::Reload()
@@ -78,4 +82,10 @@ void AWeaponBaseActor::Reload()
 void AWeaponBaseActor::FillAmmo()
 {
 	AmmoTotalNum = WeaponMaxAmmo;
+}
+
+void AWeaponBaseActor::PlayEmitterSoundMulticast_Implementation()
+{
+	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), WeaponShotParticle, WeaponMeshComponent->GetSocketLocation(TEXT("Muzzle")), WeaponMeshComponent->GetSocketRotation(TEXT("Muzzle")));
+	UGameplayStatics::PlaySoundAtLocation(this, WeaponShotSound, WeaponMeshComponent->GetSocketLocation(TEXT("Muzzle")), WeaponMeshComponent->GetSocketRotation(TEXT("Muzzle")));
 }

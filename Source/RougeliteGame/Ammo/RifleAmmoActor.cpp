@@ -32,8 +32,11 @@ ARifleAmmoActor::ARifleAmmoActor()
 	// Use a sphere as a simple collision representation
 	CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
 	CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile"));
-	CollisionComponent->OnComponentHit.AddDynamic(this, &ARifleAmmoActor::OnHit);   // set up a notification for when this component hits something blocking
-
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		CollisionComponent->OnComponentHit.AddDynamic(this, &ARifleAmmoActor::OnHit);   // set up a notification for when this component hits something blocking
+	}
+	
 	// Players can't walk on it
 	CollisionComponent->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
 	CollisionComponent->CanCharacterStepUpOn = ECB_No;
@@ -77,6 +80,7 @@ ARifleAmmoActor::ARifleAmmoActor()
 	Damage = 5.0f;
 
 	DamageTime = 2.0f;
+	// bReplicates = true;
 }
 
 void ARifleAmmoActor::BeginPlay()

@@ -6,6 +6,7 @@
 #include "AIController.h"
 #include "Perception/AIPerceptionTypes.h"
 
+
 #include "HumanAIController.generated.h"
 
 UCLASS()
@@ -33,9 +34,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float LineOfSightTimer;
 
+	UPROPERTY(EditAnywhere)
+	class UAISenseConfig_Damage* DamageSense;
+
 	UFUNCTION()
 	void StartAITimer();
 
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor *Actor, FAIStimulus AIStimulus);
+
+	UFUNCTION()
+	void SetDie();
+
+	UFUNCTION()
+	void OnPerceptionUpdated(const TArray<AActor*>& UpdatedActors);
+
 };

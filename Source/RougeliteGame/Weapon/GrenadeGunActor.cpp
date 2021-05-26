@@ -54,9 +54,6 @@ void AGrenadeGunActor::Fire()
 		AGrenadeAmmoActor* AmmoActor = GetWorld()->SpawnActor<AGrenadeAmmoActor>(AGrenadeAmmoActor::StaticClass(), AmmoTransform, SpawnParameters);
 		AmmoActor->Instigator = this->GetInstigator();
 
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), WeaponShotParticle, AmmoTransform);
-		UGameplayStatics::PlaySoundAtLocation(this, WeaponShotSound, AmmoTransform.GetLocation());
-
 		AmmoNumInClip--;
 	}
 }

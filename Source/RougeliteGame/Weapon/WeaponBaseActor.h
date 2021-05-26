@@ -61,4 +61,7 @@ public:
 
 	virtual void FillAmmo();
 
+	UFUNCTION(NetMulticast, Unreliable)
+	void PlayEmitterSoundMulticast();
+
 };
