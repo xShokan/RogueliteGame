@@ -9,8 +9,31 @@
 
 #include "FirstPersonCharacter.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FUIChange, float, CurrentHealth, float, MaxHealth, int32, AmmoNumInClip, int32, AmmoTotalNum, FString, WeaponName);
+DECLARE_DELEGATE_FiveParams(FUIChange, float, float, int32, int32, FString);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGoldNum, int32, GoldCount);
+
+/*USTRUCT()
+struct FGameUI
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	float CurrentHealth;
+
+	UPROPERTY()
+	float MaxHealth;
+
+	UPROPERTY()
+	int32 AmmoNumInClip;
+
+	UPROPERTY()
+	int32 AmmoTotalNum;
+
+	UPROPERTY()
+	FString WeaponName;
+};*/
+	
 
 UCLASS()
 class ROUGELITEGAME_API AFirstPersonCharacter : public ACharacter
@@ -60,10 +83,13 @@ public:
 	
 	/** AnimMontage to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	class UAnimMontage* FireAnimation;
+	class UAnimMontage* FirstPersonFireAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	class UAnimMontage* ReloadAnimation;
+	class UAnimMontage* ThirdPersonFireAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class UAnimMontage* ThirdPersonReloadAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MaxHealth;
@@ -92,7 +118,6 @@ public:
 	UPROPERTY(VisibleDefaultsOnly)
 	int32 GoldNum;
 
-	UPROPERTY(BlueprintAssignable)
 	FUIChange OnUIChange;
 
 	UPROPERTY(BlueprintAssignable)
@@ -103,6 +128,7 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Replicated)
 	float DeltaPitch;
+	
 	
 protected:
 	// Called when the game starts or when spawned
@@ -129,7 +155,7 @@ protected:
 
 	void StopAim();
 
-	void Open();
+	void OpenTreasureChest();
 
 public:	
 	// Called every frame
@@ -154,14 +180,20 @@ public:
 	UFUNCTION(Server, Reliable)
     void HandleSwitchWeaponOnSever();
 
-	UFUNCTION(NetMulticast, Unreliable)
-	void PlayMontageMulticast();
+	UFUNCTION(Server, Reliable)
+	void HandleReloadOnSever();
 
-	UFUNCTION(NetMulticast, Reliable)
-	void SetWeaponVisible(class AWeaponBaseActor* WeaponToBeHidden);
+	UFUNCTION(NetMulticast, Unreliable)
+	void PlayFireMontageSoundMulticast();
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void PlayReloadMontageSoundMulticast();
 
 	UFUNCTION(Client, Reliable)
-	void SetWeaponVisibleOnClient(class AWeaponBaseActor* WeaponToBeHidden);
+	void OnGameInfoUIUpdate(float CurrentHealthNow, float MaxHealthNow, int32 AmmoNumInClipNow, int32 AmmoTotalNumNow, const FString& NameNow);
+
+	UFUNCTION(Server, Reliable)
+	void BeginGameInfoUpdateOnServer();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

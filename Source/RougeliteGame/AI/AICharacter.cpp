@@ -127,7 +127,7 @@ float AAICharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 		if (DamageCauserCharacter)
 		{
 			DamageCauserCharacter->GoldNum += GoldReward;
-			DamageCauserCharacter->OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+			DamageCauserCharacter->OnUIChange.ExecuteIfBound(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
 		}
 	}
 	

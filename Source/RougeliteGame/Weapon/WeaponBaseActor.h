@@ -40,7 +40,7 @@ public:
 	UPROPERTY(EditAnywhere)
 	FString Name;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Replicated)
 	int32 AmmoNumInClip;
 
 	UPROPERTY(EditAnywhere)
@@ -64,4 +64,8 @@ public:
 	UFUNCTION(NetMulticast, Unreliable)
 	void PlayEmitterSoundMulticast();
 
+	UFUNCTION()
+	void ReloadAmmo();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

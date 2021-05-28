@@ -4,6 +4,7 @@
 
 #include "ConstructorHelpers.h"
 #include "GeometryCollectionSimulationCoreTypes.h"
+#include "TimerManager.h"
 #include "UnrealNetwork.h"
 #include "Weapon/GrenadeGunActor.h"
 #include "Weapon/RifleGunActor.h"
@@ -75,19 +76,26 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 		ThirdPersonMesh->SetAnimInstanceClass(ThirdPersonAnim.Object->GeneratedClass);
 	}
 
-	// Set fire montage
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> FireMontage(TEXT("AnimMontage'/Game/FirstPerson/Animations/FirstPersonFire_Montage.FirstPersonFire_Montage'"));
-    if (FireMontage.Succeeded())
+	// Set first person fire montage
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> FirstPersonFireMontage(TEXT("AnimMontage'/Game/FirstPerson/Animations/FirstPersonFire_Montage.FirstPersonFire_Montage'"));
+    if (FirstPersonFireMontage.Succeeded())
     {
-	    FireAnimation = FireMontage.Object;
+	    FirstPersonFireAnimation = FirstPersonFireMontage.Object;
     }
 
-	// Set reload montage
-	/*static ConstructorHelpers::FObjectFinder<UAnimMontage> ReloadMontage(TEXT("AnimMontage'/Game/Animation/FPSReload_Rifle_Hip_Montage.FPSReload_Rifle_Hip_Montage'"));
-	if (ReloadMontage.Succeeded())
+	// Set third person fire montage
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ThirdPersonFireMontage(TEXT("AnimMontage'/Game/Animation/Fire_Rifle_Ironsights_Montage.Fire_Rifle_Ironsights_Montage'"));
+	if (ThirdPersonFireMontage.Succeeded())
 	{
-		ReloadAnimation = ReloadMontage.Object;
-	}*/
+		ThirdPersonFireAnimation = ThirdPersonFireMontage.Object;
+	}
+
+	// Set third person reload montage
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ThirdPersonReloadMontage(TEXT("AnimMontage'/Game/Animation/Reload_Rifle_Ironsights_Montage.Reload_Rifle_Ironsights_Montage'"));
+	if (ThirdPersonReloadMontage.Succeeded())
+	{
+		ThirdPersonReloadAnimation = ThirdPersonReloadMontage.Object;
+	}
 
 	ParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleComponent"));
 	ParticleComponent->SetAutoActivate(false);
@@ -116,6 +124,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	bOverlappingTreasureChest = false;
 	GoldNum = 0;
 	// bUseControllerRotationPitch = true;
+	// bReplicates = true;
 }
 
 // Called when the game starts or when spawned
@@ -148,9 +157,16 @@ void AFirstPersonCharacter::BeginPlay()
 			WeaponArray[1]->Instigator = this;
 			WeaponArray[1]->SetActorHiddenInGame(true);
 		}
-		// Weapon->WeaponMeshComponent->SetOnlyOwnerSee(true);
+		Weapon->WeaponMeshComponent->SetOnlyOwnerSee(true);
+		/*FTimerHandle Handle;
+		GetWorld()->GetTimerManager().SetTimer(Handle, [this]() {
+			OnGameInfoUIUpdate(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+		}, 2.0f, false);*/
 	}
-
+	if (IsLocallyControlled())
+	{
+		BeginGameInfoUpdateOnServer();
+	}
 	/*// First person weapon
 	if (IsLocallyControlled())
 	{
@@ -195,7 +211,7 @@ void AFirstPersonCharacter::BeginPlay()
 
 	if (OnUIChange.IsBound() && OnGoldAdd.IsBound() && Weapon)
 	{
-		OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+		OnUIChange.Execute(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
 		OnGoldAdd.Broadcast(GoldNum);
 	}
 	else
@@ -232,9 +248,11 @@ void AFirstPersonCharacter::HandleFireOnServer_Implementation()
 {
 	if (Weapon->AmmoNumInClip > 0)
 	{
-		PlayMontageMulticast();
+		PlayFireMontageSoundMulticast();
 		Weapon->Fire();
-        OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+        OnGameInfoUIUpdate(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+		// CharacterInfo.CurrentHealth--;
+		// CurrentHealth--;
 	}
 }
 
@@ -249,8 +267,12 @@ void AFirstPersonCharacter::Reload()
 			AnimInstance->Montage_Play(ReloadAnimation);
 		}
 	}*/
-	Weapon->Reload();
-	OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+	/*Weapon->Reload();
+	OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);*/
+	if (IsLocallyControlled())
+	{
+		HandleReloadOnSever();
+	}
 }
 
 void AFirstPersonCharacter::SwitchWeapon()
@@ -271,6 +293,7 @@ void AFirstPersonCharacter::HandleSwitchWeaponOnSever_Implementation()
 	}
 	Weapon = WeaponArray[WeaponIndex];
 	Weapon->SetActorHiddenInGame(false);
+	OnGameInfoUIUpdate(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
 }
 
 void AFirstPersonCharacter::StartSprint()
@@ -303,7 +326,7 @@ void AFirstPersonCharacter::StopAim()
 	}
 }
 
-void AFirstPersonCharacter::Open()
+void AFirstPersonCharacter::OpenTreasureChest()
 {
 	if (bOverlappingTreasureChest && TreasureChest)
 	{
@@ -336,17 +359,32 @@ void AFirstPersonCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	PlayerInputComponent->BindAction(TEXT("Sprint"), IE_Released, this, &AFirstPersonCharacter::StopSprint);
 	PlayerInputComponent->BindAction(TEXT("Aim"), IE_Pressed, this, &AFirstPersonCharacter::StartAim);
 	PlayerInputComponent->BindAction(TEXT("Aim"), IE_Released, this, &AFirstPersonCharacter::StopAim);
-	PlayerInputComponent->BindAction(TEXT("Interaction"), IE_Pressed, this, &AFirstPersonCharacter::Open);
+	PlayerInputComponent->BindAction(TEXT("Interaction"), IE_Pressed, this, &AFirstPersonCharacter::OpenTreasureChest);
 
 }
 
 float AFirstPersonCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
 	AController* EventInstigator, AActor* DamageCauser)
 {
+	if (GetNetMode() == ENetMode::NM_DedicatedServer)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TakeDamage: NM_DedicatedServer"));
+	}
+	if (GetNetMode() == ENetMode::NM_Client)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TakeDamage: NM_Client"));
+	}
 	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.0f, MaxHealth);
 	if (OnUIChange.IsBound())
 	{
-		OnUIChange.Broadcast(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+		if (Weapon)
+		{
+			OnUIChange.Execute(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Weapon nullptr"));
+		}
 	}
 	else
 	{
@@ -391,22 +429,86 @@ void AFirstPersonCharacter::UpdateRotator_Implementation(FRotator NewRotator)
 	UpdateRotatorMulticast(NewRotator);
 }
 
-void AFirstPersonCharacter::SetWeaponVisibleOnClient_Implementation(AWeaponBaseActor* WeaponToBeHidden)
+void AFirstPersonCharacter::PlayFireMontageSoundMulticast_Implementation()
 {
-	WeaponToBeHidden->SetActorHiddenInGame(true);
-}
-
-void AFirstPersonCharacter::SetWeaponVisible_Implementation(AWeaponBaseActor* WeaponToBeHidden)
-{
-	WeaponToBeHidden->SetActorHiddenInGame(true);
-}
-
-void AFirstPersonCharacter::PlayMontageMulticast_Implementation()
-{
-	if (FireAnimation)
+	if (FirstPersonFireAnimation)
 	{
-		PlayAnimMontage(FireAnimation);
+		PlayAnimMontage(FirstPersonFireAnimation);
+		
 	}
+	UAnimInstance * AnimInstance = ThirdPersonMesh->GetAnimInstance(); 
+    if( ThirdPersonFireAnimation && AnimInstance )
+    {
+	    AnimInstance->Montage_Play(ThirdPersonFireAnimation);
+    }
+}
+
+void AFirstPersonCharacter::PlayReloadMontageSoundMulticast_Implementation()
+{
+	UAnimInstance * AnimInstance = ThirdPersonMesh->GetAnimInstance(); 
+	if( ThirdPersonReloadAnimation && AnimInstance )
+	{
+		AnimInstance->Montage_Play(ThirdPersonReloadAnimation);
+	}
+}
+
+void AFirstPersonCharacter::HandleReloadOnSever_Implementation()
+{
+	// Weapon->Reload();
+	PlayReloadMontageSoundMulticast();
+	FTimerHandle handle;
+	GetWorld()->GetTimerManager().SetTimer(handle, [this]() {
+		if (Weapon->AmmoTotalNum < Weapon->ClipMaxAmmo - Weapon->AmmoNumInClip)
+		{
+			Weapon->AmmoNumInClip += Weapon->AmmoTotalNum;
+			Weapon->AmmoTotalNum = 0;
+		}
+		else
+		{
+			Weapon->AmmoTotalNum -= Weapon->ClipMaxAmmo - Weapon->AmmoNumInClip;
+			Weapon->AmmoNumInClip = Weapon->ClipMaxAmmo;
+		}
+		OnGameInfoUIUpdate(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+	}, 2.0f, false);
+	UE_LOG(LogTemp, Warning, TEXT("%d"), Weapon->AmmoNumInClip);
+}
+
+void AFirstPersonCharacter::OnGameInfoUIUpdate_Implementation(float CurrentHealthNow, float MaxHealthNow, int32 AmmoNumInClipNow, int32 AmmoTotalNumNow, const FString& NameNow)
+{
+	if (GetNetMode() == ENetMode::NM_DedicatedServer)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("NM_DedicatedServer"));
+	}
+	if (GetNetMode() == ENetMode::NM_Client)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("NM_Client"));
+	}
+	if (IsLocallyControlled())
+	{
+		if (OnUIChange.IsBound())
+		{
+			OnUIChange.Execute(CurrentHealthNow, MaxHealthNow,AmmoNumInClipNow, AmmoTotalNumNow, NameNow);
+		}
+	}
+}
+
+/*void AFirstPersonCharacter::OnRep_GameUI()
+{
+	UE_LOG(LogTemp, Warning, TEXT("AFirstPersonCharacter::OnRep_GameUI"));
+	OnUIChange.Broadcast(CharacterInfo.CurrentHealth, CharacterInfo.MaxHealth,CharacterInfo.AmmoNumInClip, CharacterInfo.AmmoTotalNum, CharacterInfo.WeaponName);
+}*/
+
+void AFirstPersonCharacter::BeginGameInfoUpdateOnServer_Implementation()
+{
+	if (GetNetMode() == ENetMode::NM_DedicatedServer)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Test NM_DedicatedServer"));
+	}
+	if (GetNetMode() == ENetMode::NM_Client)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Test NM_Client"));
+	}
+	OnGameInfoUIUpdate(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
 }
 
 void AFirstPersonCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -415,4 +517,5 @@ void AFirstPersonCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 
 	DOREPLIFETIME(AFirstPersonCharacter, DeltaYaw);
 	DOREPLIFETIME(AFirstPersonCharacter, DeltaPitch);
+	// DOREPLIFETIME(AFirstPersonCharacter, CurrentHealth);
 }

@@ -5,6 +5,7 @@
 
 #include "FirstPersonCharacter.h"
 #include "TimerManager.h"
+#include "UnrealNetwork.h"
 #include "Animation/AnimInstance.h"
 #include "Components/InputComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -60,23 +61,6 @@ void AWeaponBaseActor::Fire()
 
 void AWeaponBaseActor::Reload()
 {
-	if (AmmoTotalNum > 0)
-	{
-		FTimerHandle handle;
-		GetWorld()->GetTimerManager().SetTimer(handle, [this]() {
-			if (AmmoTotalNum < ClipMaxAmmo - AmmoNumInClip)
-			{
-				AmmoNumInClip += AmmoTotalNum;
-				AmmoTotalNum = 0;
-			}
-			else
-			{
-				AmmoTotalNum -= ClipMaxAmmo - AmmoNumInClip;
-				AmmoNumInClip = ClipMaxAmmo;
-			}
-        }, 2.0f, false);
-	}
-	
 }
 
 void AWeaponBaseActor::FillAmmo()
@@ -88,4 +72,16 @@ void AWeaponBaseActor::PlayEmitterSoundMulticast_Implementation()
 {
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), WeaponShotParticle, WeaponMeshComponent->GetSocketLocation(TEXT("Muzzle")), WeaponMeshComponent->GetSocketRotation(TEXT("Muzzle")));
 	UGameplayStatics::PlaySoundAtLocation(this, WeaponShotSound, WeaponMeshComponent->GetSocketLocation(TEXT("Muzzle")), WeaponMeshComponent->GetSocketRotation(TEXT("Muzzle")));
+}
+
+void AWeaponBaseActor::ReloadAmmo()
+{
+	
+}
+
+void AWeaponBaseActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AWeaponBaseActor, AmmoNumInClip);
 }

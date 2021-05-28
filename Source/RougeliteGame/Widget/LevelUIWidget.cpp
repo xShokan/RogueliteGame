@@ -6,13 +6,10 @@
 
 
 #include "FirstPersonCharacter.h"
-#include "RougeliteGameGameModeBase.h"
 #include "TextBlock.h"
-#include "Weapon/WeaponBaseActor.h"
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetMathLibrary.h"
-#include "Kismet/KismetStringLibrary.h"
+
 
 
 void ULevelUIWidget::NativeConstruct()
@@ -22,7 +19,7 @@ void ULevelUIWidget::NativeConstruct()
 	FirstPersonCharacter = Cast<AFirstPersonCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
 	if (FirstPersonCharacter)
 	{
-		FirstPersonCharacter->OnUIChange.AddDynamic(this, &ULevelUIWidget::ChangeHealthAndAmmo);
+		FirstPersonCharacter->OnUIChange.BindUObject(this, &ULevelUIWidget::ChangeHealthAndAmmo);
 		FirstPersonCharacter->OnGoldAdd.AddDynamic(this, &ULevelUIWidget::ChangeGold);
 	}
 }
