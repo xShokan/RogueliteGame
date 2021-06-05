@@ -48,6 +48,12 @@ AAICharacter::AAICharacter()
     {
 	    DeathAnimation = DeathAnimationAsset.Object;
     }
+
+	static ConstructorHelpers::FObjectFinder<UAnimationAsset> RollAnimAsset(TEXT("AnimSequence'/Game/Animation/Dive_Fwd_Roll.Dive_Fwd_Roll'"));
+	if (RollAnimAsset.Succeeded())
+	{
+		RollAnim = RollAnimAsset.Object;
+	}
 	
 	HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
 	HealthBarComponent->SetupAttachment(RootComponent);
@@ -88,15 +94,19 @@ void AAICharacter::BeginPlay()
 	FTransform WeaponTransform;
 	WeaponTransform.SetLocation(FVector::ZeroVector);
 	WeaponTransform.SetRotation(FQuat(FRotator::ZeroRotator));
-	Weapon = GetWorld()->SpawnActor<ARifleGunActor>(ARifleGunActor::StaticClass(), WeaponTransform, SpawnParameters);
-	if (Weapon)
+
+	if (GetLocalRole() == ROLE_Authority)
 	{
-		Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
-		Weapon->Instigator = this;
-		Weapon->AmmoNumInClip = 1000;
+		Weapon = GetWorld()->SpawnActor<ARifleGunActor>(ARifleGunActor::StaticClass(), WeaponTransform, SpawnParameters);
+		if (Weapon)
+		{
+			Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("GripPoint"));
+			Weapon->Instigator = this;
+			Weapon->AmmoNumInClip = 1000;
+		}
 	}
 
-	HealthBarComponent->SetVisibility(false);
+	HealthBarComponent->SetVisibility(true);
 	HeadLowBoundZ = GetMesh()->GetSocketLocation(FName("HeadDamageSocket")).Z;
 }
 
@@ -117,28 +127,30 @@ void AAICharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 float AAICharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
 	AActor* DamageCauser)
 {
-	float DamageApplied = CurrentHealth - DamageAmount;	
-	HealthBarComponent->SetVisibility(true);
-	SetCurrentHealth(DamageApplied);
-
-	if (CurrentHealth < 0.1f)
+	if (GetLocalRole() == ROLE_Authority)
 	{
-		AFirstPersonCharacter* DamageCauserCharacter = Cast<AFirstPersonCharacter>(DamageCauser);
-		if (DamageCauserCharacter)
+		CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.0f, MaxHealth);
+		if (CurrentHealth < 0.1f)
 		{
-			DamageCauserCharacter->GoldNum += GoldReward;
-			DamageCauserCharacter->OnUIChange.ExecuteIfBound(CurrentHealth, MaxHealth, Weapon->AmmoNumInClip, Weapon->AmmoTotalNum, Weapon->Name);
+			AFirstPersonCharacter* DamageCauserCharacter = Cast<AFirstPersonCharacter>(DamageCauser);
+			if (DamageCauserCharacter)
+			{
+				DamageCauserCharacter->GoldNum += GoldReward;
+			}
+			DetachFromControllerPendingDestroy();
+			Weapon->SetLifeSpan(5.0f);
+			SetLifeSpan(5.0f);
+		}
+	
+		AHumanAIController* HumanAIController = Cast<AHumanAIController>(GetController());
+		if (HumanAIController)
+		{
+			HumanAIController->GetBlackboardComponent()->SetValueAsBool(FName("HasBeenAttacked"), UKismetMathLibrary::RandomBool());
+			HumanAIController->GetBlackboardComponent()->SetValueAsBool(FName("HasLineOfSight"), true);
+			HumanAIController->GetBlackboardComponent()->SetValueAsObject(FName("AIActor"), DamageCauser);
 		}
 	}
-	
-	AHumanAIController* HumanAIController = Cast<AHumanAIController>(GetController());
-	if (HumanAIController)
-	{
-		HumanAIController->GetBlackboardComponent()->SetValueAsBool(FName("HasBeenAttacked"), UKismetMathLibrary::RandomBool());
-		HumanAIController->GetBlackboardComponent()->SetValueAsBool(FName("HasLineOfSight"), true);
-		HumanAIController->GetBlackboardComponent()->SetValueAsObject(FName("AIActor"), DamageCauser);
-	}
-	return DamageApplied;
+	return 0.0f;
 }
 
 void AAICharacter::UpdateWalkSpeed(float Speed)
@@ -148,7 +160,21 @@ void AAICharacter::UpdateWalkSpeed(float Speed)
 
 void AAICharacter::Fire()
 {
+	FireOnServer();
+}
+
+void AAICharacter::FireOnServer_Implementation()
+{
 	GetWorld()->GetTimerManager().SetTimer(FireHandle, this, &AAICharacter::FireOnce, 0.3f, true);
+}
+
+void AAICharacter::OnRep_CurrentHealth()
+{
+	if (CurrentHealth < 0.1f)
+	{
+		HealthBarComponent->SetVisibility(false);
+		AIMeshComponent->PlayAnimation(DeathAnimation, false);
+	}
 }
 
 void AAICharacter::FireOnce()
@@ -165,40 +191,14 @@ void AAICharacter::FireOnce()
 	}
 }
 
-void AAICharacter::OnRep_CurrentHealth()
+void AAICharacter::PlayRollAnimMulticast_Implementation()
 {
-	OnHealthUpdate();
-}
-
-void AAICharacter::OnHealthUpdate()
-{
-	//Client-specific functionality
-	if (IsLocallyControlled())
+	GetMesh()->PlayAnimation(RollAnim, false);
+	FTimerHandle Handle;
+	GetWorld()->GetTimerManager().SetTimer(Handle, [this]
 	{
-		if (CurrentHealth < 0.1f)
-		{
-			AIMeshComponent->PlayAnimation(DeathAnimation, false);
-			DetachFromControllerPendingDestroy();
-		
-			Weapon->SetLifeSpan(5.0f);
-			SetLifeSpan(5.0f);
-		}
-	}
-
-	//Server-specific functionality
-	if (GetLocalRole() == ROLE_Authority)
-	{
-		
-	}
-}
-
-void AAICharacter::SetCurrentHealth(float HealthValue)
-{
-	if (GetLocalRole() == ROLE_Authority)
-	{
-		CurrentHealth = FMath::Clamp(HealthValue, 0.0f, MaxHealth);
-		OnHealthUpdate();
-	}
+		GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+	}, 0.3f, false);
 }
 
 void AAICharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

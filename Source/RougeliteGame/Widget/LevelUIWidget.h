@@ -39,8 +39,29 @@ public:
 	UPROPERTY(Meta=(BindWidget))
 	class UTextBlock* GoldLabel;
 
+	UPROPERTY(Meta=(BindWidget))
+	class UProgressBar* OtherPlayerHealthBar;
+	
+	UPROPERTY(Meta=(BindWidget))
+	class UTextBlock* OtherPlayerNameLabel;
+	
+	UPROPERTY(Meta=(BindWidget))
+	class UTextBlock* OtherPlayerCurrentHealthLabel;
+
+	UPROPERTY(Meta=(BindWidget))
+	class UTextBlock* OtherPlayerMaxHealthLabel;
+
 	UPROPERTY(VisibleDefaultsOnly)
 	class AFirstPersonCharacter* FirstPersonCharacter;
+
+	UPROPERTY(VisibleDefaultsOnly)
+	class AFirstPersonCharacter* OtherPlayerCharacter;
+
+	UPROPERTY()
+	TArray<class AActor*> FirstPersonCharacterArray;
+
+	class ACharacterPlayerState* PS;
+	
     
 protected:
 
@@ -53,4 +74,7 @@ protected:
 
 	UFUNCTION()
 	void ChangeGold(int32 GoldCount);
+
+	UFUNCTION()
+	void ChangeOtherPlayerInfo(float CurrentHealth, float MaxHealth, FString PlayerName);
 };

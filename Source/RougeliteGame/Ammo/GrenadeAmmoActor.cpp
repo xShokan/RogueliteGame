@@ -72,6 +72,8 @@ AGrenadeAmmoActor::AGrenadeAmmoActor()
 
 	DamageTime = 2.5f;
 
+	bReplicates = true;
+
 }
 
 void AGrenadeAmmoActor::BeginPlay()

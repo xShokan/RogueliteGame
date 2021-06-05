@@ -9,8 +9,9 @@
 
 #include "FirstPersonCharacter.generated.h"
 
-DECLARE_DELEGATE_FiveParams(FUIChange, float, float, int32, int32, FString);
+DECLARE_MULTICAST_DELEGATE_FiveParams(FUIChange, float, float, int32, int32, FString);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGoldNum, int32, GoldCount);
+DECLARE_DELEGATE_ThreeParams(FOtherPlayerInfo, float, float, FString);
 
 /*USTRUCT()
 struct FGameUI
@@ -89,12 +90,15 @@ public:
 	class UAnimMontage* ThirdPersonFireAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class UAnimMontage* FirstPersonReloadAnimation;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	class UAnimMontage* ThirdPersonReloadAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MaxHealth;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_CurrentHealth)
 	float CurrentHealth;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -115,7 +119,7 @@ public:
 	UPROPERTY(VisibleDefaultsOnly)
 	class ATreasureChest* TreasureChest;
 
-	UPROPERTY(VisibleDefaultsOnly)
+	UPROPERTY(VisibleDefaultsOnly, ReplicatedUsing=OnRep_GoldNum)
 	int32 GoldNum;
 
 	FUIChange OnUIChange;
@@ -128,7 +132,11 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Replicated)
 	float DeltaPitch;
-	
+
+	FOtherPlayerInfo OnOtherPlayerInfo;
+
+	UPROPERTY(VisibleDefaultsOnly)
+	AFirstPersonCharacter* OtherCharacter;
 	
 protected:
 	// Called when the game starts or when spawned
@@ -155,7 +163,13 @@ protected:
 
 	void StopAim();
 
+	void StartCrouch();
+
+	void EndCrouch();
+
 	void OpenTreasureChest();
+
+	void BindWeaponOnMesh(class AWeaponBaseActor* WeaponToBind);
 
 public:	
 	// Called every frame
@@ -189,11 +203,23 @@ public:
 	UFUNCTION(NetMulticast, Unreliable)
 	void PlayReloadMontageSoundMulticast();
 
+	UFUNCTION(Client, Unreliable)
+	void PlayFirstPersonReloadMontageOnClient();
+
 	UFUNCTION(Client, Reliable)
 	void OnGameInfoUIUpdate(float CurrentHealthNow, float MaxHealthNow, int32 AmmoNumInClipNow, int32 AmmoTotalNumNow, const FString& NameNow);
 
 	UFUNCTION(Server, Reliable)
 	void BeginGameInfoUpdateOnServer();
+
+	UFUNCTION(Server, Reliable)
+	void FillAmmoOnServer();
+
+	UFUNCTION()
+	void OnRep_GoldNum();
+
+	UFUNCTION()
+	void OnRep_CurrentHealth();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

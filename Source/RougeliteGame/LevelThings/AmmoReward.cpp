@@ -20,16 +20,18 @@ AAmmoReward::AAmmoReward()
 		CollisionComponent->InitBoxExtent(RewardMeshComponent->GetStaticMesh()->GetBounds().BoxExtent);
 	}
 	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AAmmoReward::OnOverlap);
+	
+	bReplicates = true;
 }
 
 void AAmmoReward::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                             UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	Super::OnOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
-	if (RewardCharacter)
+	if (RewardCharacter && GetLocalRole() == ROLE_Authority)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AAmmoReward::OnOverlap"));
-		RewardCharacter->Weapon->FillAmmo();
+		RewardCharacter->FillAmmoOnServer();
 		Destroy();
 	}
 }

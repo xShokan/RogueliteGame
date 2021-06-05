@@ -60,6 +60,9 @@ public:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite)
 	bool bAttacked;
 
+	UPROPERTY(VisibleDefaultsOnly)
+	class UAnimationAsset* RollAnim;
+
 	/** Event for taking damage. Overridden from APawn.*/
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	
@@ -69,18 +72,21 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Fire();
 
-	void FireOnce();
+	UFUNCTION(Server, Reliable)
+	void FireOnServer();
 
-	/** RepNotify for changes made to current health.*/
 	UFUNCTION()
 	void OnRep_CurrentHealth();
+	
+	void FireOnce();
 
-	/** Response to health being updated. Called on the server immediately after modification, and on clients in response to a RepNotify*/
-	void OnHealthUpdate();
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable)
+	void PlayRollAnimMulticast();
 
-	/** Setter for Current Health. Clamps the value between 0 and MaxHealth and calls OnHealthUpdate. Should only be called on the server.*/
-	void SetCurrentHealth(float HealthValue);
+	/*UFUNCTION(NetMulticast, Reliable)
+	void PlayDeathAnimMulticast();*/
 
 	/** Property replication */
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
+

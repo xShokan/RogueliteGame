@@ -55,7 +55,6 @@ void ARifleGunActor::Fire()
 		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 		
 		AmmoTransform.SetLocation(WeaponMeshComponent->GetSocketLocation(TEXT("Muzzle")));
-		UE_LOG(LogTemp, Warning, TEXT("%f"), WeaponMeshComponent->GetSocketLocation(TEXT("Muzzle")).X);
 		if (Cast<AFirstPersonCharacter>(Instigator))
 		{
 			AmmoTransform.SetRotation(FQuat(WeaponMeshComponent->GetSocketRotation(TEXT("Muzzle"))));
